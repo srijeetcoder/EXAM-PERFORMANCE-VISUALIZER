@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - InsightScore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
+
+    <div class="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-2xl w-full max-w-md text-white relative">
+        <div class="text-center mb-8">
+            <i data-lucide="trending-up" class="w-12 h-12 text-purple-500 mx-auto mb-2"></i>
+            <h1 class="text-3xl font-bold">InsightScore</h1>
+            <p class="text-slate-400">Exam Performance Tracker</p>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="login-form">
+            <h2 class="text-xl font-semibold mb-4 text-purple-400">Login</h2>
+            <input id="l-email" type="email" placeholder="Email" class="auth-input">
+            <div class="relative mb-4">
+                <input id="l-pass" type="password" placeholder="Password" class="auth-input">
+                <button onclick="togglePass('l-pass')" class="pass-toggle"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            </div>
+            <button onclick="handleAuth('login')" class="btn-primary bg-purple-600 hover:bg-purple-700">Login</button>
+            <div class="flex justify-between mt-4 text-sm text-slate-400">
+                <button onclick="switchView('register')" class="hover:text-white">Create Account</button>
+                <button onclick="switchView('forgot')" class="hover:text-white">Forgot Password?</button>
+            </div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="register-form" class="hidden">
+            <h2 class="text-xl font-semibold mb-4 text-green-400">Register</h2>
+            <input id="r-name" type="text" placeholder="Full Name" class="auth-input">
+            <input id="r-phone" type="text" placeholder="Phone Number" class="auth-input">
+            <input id="r-email" type="email" placeholder="Email" class="auth-input">
+            <div class="relative mb-4">
+                <input id="r-pass" type="password" placeholder="Password" class="auth-input">
+                <button onclick="togglePass('r-pass')" class="pass-toggle"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            </div>
+            <button onclick="handleAuth('register')" class="btn-primary bg-green-600 hover:bg-green-700">Register</button>
+            <button onclick="switchView('login')" class="w-full mt-4 text-slate-400 text-sm hover:text-white">Back to Login</button>
+        </div>
+
+        <!-- FORGOT PASSWORD -->
+        <div id="forgot-form" class="hidden">
+            <h2 class="text-xl font-semibold mb-4 text-yellow-400">Reset Password</h2>
+            <div id="step-1">
+                <input id="f-email" type="email" placeholder="Enter Email for OTP" class="auth-input">
+                <button onclick="sendOTP()" class="btn-primary bg-yellow-600 hover:bg-yellow-700 text-slate-900 font-bold">Send OTP</button>
+            </div>
+            <div id="step-2" class="hidden">
+                <p class="text-xs text-slate-400 mb-2">OTP sent to server console (Mock)</p>
+                <input id="f-otp" type="text" placeholder="Enter 6-Digit OTP" class="auth-input text-center tracking-widest text-xl">
+                <button onclick="verifyOTP()" class="btn-primary bg-purple-600 hover:bg-purple-700">Verify & Login</button>
+            </div>
+            <button onclick="switchView('login')" class="w-full mt-4 text-slate-400 text-sm hover:text-white">Back to Login</button>
+        </div>
+    </div>
+
+    <style>
+        .auth-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; margin-bottom: 12px; outline: none; }
+        .auth-input:focus { border-color: #a855f7; }
+        .btn-primary { width: 100%; padding: 12px; border-radius: 8px; color: white; font-weight: bold; transition: 0.2s; }
+        .pass-toggle { position: absolute; right: 12px; top: 12px; color: #64748b; }
+        .pass-toggle:hover { color: white; }
+    </style>
+
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -235,7 +235,7 @@ function renderOverview(container) {
             </div>
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <p class="text-slate-400 text-sm font-bold uppercase">Active Subjects</p>
-                <p class="text-4xl font-bold text-purple-400 mt-1">${getSubjects().length}</p>
+                <p class="text-4xl font-bold text-purple-400 mt-1">${subjects.length}</p>
             </div>
         </div>
 
@@ -273,7 +273,7 @@ function renderOverview(container) {
                 </div>
             </div>
 
-            <!-- NEW PIE CHART: Error Distribution -->
+            <!-- PIE CHART: Error Distribution -->
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <div class="flex items-center gap-2 mb-6">
                     <i data-lucide="alert-triangle" class="text-red-400"></i>
@@ -303,42 +303,25 @@ function renderOverview(container) {
         </div>
     `;
 
-    // Render Line Chart (Trend)
-    const ctx = document.getElementById('overviewChart');
-    if (ctx) {
-        const labels = exams.map(e => e.name);
-        const data = exams.map(e => (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1));
-        
-        const chart = new Chart(ctx, {
+    // Render Charts
+    if (document.getElementById('overviewChart')) {
+        const chart = new Chart(document.getElementById('overviewChart'), {
             type: 'line',
             data: {
-                labels: labels,
+                labels: exams.map(e => e.name),
                 datasets: [{
                     label: 'Score %',
-                    data: data,
-                    borderColor: '#a855f7',
-                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                    tension: 0.4,
-                    fill: true
+                    data: exams.map(e => (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1)),
+                    borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.1)', tension: 0.4, fill: true
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
-                },
-                plugins: { legend: { display: false } }
-            }
+            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } } }
         });
         activeCharts.push(chart);
     }
 
-    // Render Pie Chart (Exams)
-    const ctxPie = document.getElementById('subjectPieChart');
-    if (ctxPie) {
-        const pieChart = new Chart(ctxPie, {
+    if (document.getElementById('subjectPieChart')) {
+        const pieChart = new Chart(document.getElementById('subjectPieChart'), {
             type: 'pie',
             data: {
                 labels: subjects,
@@ -348,21 +331,13 @@ function renderOverview(container) {
                     borderWidth: 0
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#94a3b8' } }
-                }
-            }
+            options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
         });
         activeCharts.push(pieChart);
     }
 
-    // Render Pie Chart (Errors)
-    const ctxErrorPie = document.getElementById('errorPieChart');
-    if (ctxErrorPie) {
-        const errorPieChart = new Chart(ctxErrorPie, {
+    if (document.getElementById('errorPieChart')) {
+        const errorPieChart = new Chart(document.getElementById('errorPieChart'), {
             type: 'pie',
             data: {
                 labels: subjects,
@@ -372,40 +347,19 @@ function renderOverview(container) {
                     borderWidth: 0
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#94a3b8' } }
-                }
-            }
+            options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
         });
         activeCharts.push(errorPieChart);
     }
 
-    // Render Bar Chart (Avg Scores)
-    const ctxBar = document.getElementById('subjectBarChart');
-    if (ctxBar) {
-        const barChart = new Chart(ctxBar, {
+    if (document.getElementById('subjectBarChart')) {
+        const barChart = new Chart(document.getElementById('subjectBarChart'), {
             type: 'bar',
             data: {
                 labels: subjects,
-                datasets: [{
-                    label: 'Average Score %',
-                    data: subjectAvgScores,
-                    backgroundColor: '#10b981',
-                    borderRadius: 4
-                }]
+                datasets: [{ label: 'Average Score %', data: subjectAvgScores, backgroundColor: '#10b981', borderRadius: 4 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
-                },
-                plugins: { legend: { display: false } }
-            }
+            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } }, maintainAspectRatio: false }
         });
         activeCharts.push(barChart);
     }
@@ -420,10 +374,28 @@ function renderSubjectView(container) {
         ? (subExams.reduce((s, e) => s + (parseFloat(e.marksScored) / parseFloat(e.totalMarks)), 0) / subExams.length * 100).toFixed(1)
         : '0.0';
 
-    const rows = subExams.map(e => {
+    // --- AGGREGATE TOPIC DATA FOR CHARTS & TABLE ---
+    let topicStats = {};
+    subExams.forEach(e => {
+        if(e.topics) {
+            e.topics.forEach(t => {
+                if(!topicStats[t.name]) {
+                    topicStats[t.name] = { total: 0, incorrect: 0 };
+                }
+                topicStats[t.name].total += parseInt(t.totalQuestions || 0);
+                topicStats[t.name].incorrect += parseInt(t.incorrectQuestions || 0);
+            });
+        }
+    });
+
+    const topicLabels = Object.keys(topicStats);
+    const topicErrorCounts = topicLabels.map(t => topicStats[t].incorrect);
+    const topicErrorRates = topicLabels.map(t => ((topicStats[t].incorrect / topicStats[t].total) * 100).toFixed(1));
+
+    // Exam History Rows
+    const examRows = subExams.map(e => {
         const pct = (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1);
         let colorClass = pct >= 75 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400';
-        
         return `
             <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition">
                 <td class="p-4">${e.name}</td>
@@ -432,6 +404,22 @@ function renderSubjectView(container) {
                 <td class="p-4 text-center">
                     <button onclick="deleteExam(${e.id})" class="text-slate-500 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </td>
+            </tr>
+        `;
+    }).join('');
+
+    // Topic Analysis Rows
+    const topicRows = topicLabels.map(t => {
+        const total = topicStats[t].total;
+        const incorrect = topicStats[t].incorrect;
+        const errPct = ((incorrect / total) * 100).toFixed(1);
+        let colorClass = errPct <= 15 ? 'text-green-400' : errPct <= 40 ? 'text-yellow-400' : 'text-red-400';
+        return `
+            <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition">
+                <td class="p-4 text-slate-200 font-medium">${t}</td>
+                <td class="p-4 text-right text-slate-400">${total}</td>
+                <td class="p-4 text-right text-red-300">${incorrect}</td>
+                <td class="p-4 text-right font-bold ${colorClass}">${errPct}%</td>
             </tr>
         `;
     }).join('');
@@ -449,6 +437,7 @@ function renderSubjectView(container) {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Exam History Table -->
             <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <h3 class="text-lg font-bold mb-4">Exam History</h3>
                 <div class="overflow-x-auto">
@@ -461,11 +450,28 @@ function renderSubjectView(container) {
                                 <th class="p-3 text-center rounded-r-lg">Action</th>
                             </tr>
                         </thead>
-                        <tbody>${rows}</tbody>
+                        <tbody>${examRows}</tbody>
+                    </table>
+                </div>
+                
+                <!-- NEW TOPIC TABLE -->
+                <h3 class="text-lg font-bold mb-4 mt-8 border-t border-slate-700 pt-6">Topic-Wise Performance Analysis</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-slate-300">
+                        <thead>
+                            <tr class="text-xs uppercase bg-slate-900/50 text-slate-500">
+                                <th class="p-3 text-left rounded-l-lg">Topic</th>
+                                <th class="p-3 text-right">Total Qs</th>
+                                <th class="p-3 text-right">Incorrect</th>
+                                <th class="p-3 text-right rounded-r-lg">Error Rate %</th>
+                            </tr>
+                        </thead>
+                        <tbody>${topicRows.length ? topicRows : '<tr><td colspan="4" class="p-4 text-center text-slate-500">No topic data available</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Score Progress Bar Chart -->
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <h3 class="text-lg font-bold mb-4">Progress</h3>
                 <div class="chart-container">
@@ -473,33 +479,83 @@ function renderSubjectView(container) {
                 </div>
             </div>
         </div>
+
+        <!-- NEW ROW: TOPIC ANALYSIS CHARTS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- 1. Topic Error Distribution (Pie) -->
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                <div class="flex items-center gap-2 mb-6">
+                    <i data-lucide="pie-chart" class="text-yellow-400"></i>
+                    <h3 class="text-xl font-bold">Topic Error Distribution (Total Errors)</h3>
+                </div>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="subTopicPie"></canvas>
+                </div>
+            </div>
+
+            <!-- 2. Topic Weakness Analysis (Bar) -->
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                <div class="flex items-center gap-2 mb-6">
+                    <i data-lucide="bar-chart-2" class="text-red-400"></i>
+                    <h3 class="text-xl font-bold">Topic Error Rate % (Weakness)</h3>
+                </div>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="subTopicBar"></canvas>
+                </div>
+            </div>
+        </div>
     `;
 
-    // Render Subject Chart
-    const ctx = document.getElementById('subChart');
-    if (ctx) {
-        const chart = new Chart(ctx, {
+    // 1. Render Subject Progress Bar Chart (Existing)
+    if (document.getElementById('subChart')) {
+        const chart = new Chart(document.getElementById('subChart'), {
             type: 'bar',
             data: {
                 labels: subExams.map(e => e.name),
                 datasets: [{
                     label: 'Score %',
                     data: subExams.map(e => (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1)),
-                    backgroundColor: '#a855f7',
-                    borderRadius: 6
+                    backgroundColor: '#a855f7', borderRadius: 6
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
-                },
-                plugins: { legend: { display: false } }
-            }
+            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } }, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
         activeCharts.push(chart);
+    }
+
+    // 2. Render Topic Error Distribution (Pie)
+    if (document.getElementById('subTopicPie') && topicLabels.length > 0) {
+        const pieChart = new Chart(document.getElementById('subTopicPie'), {
+            type: 'pie',
+            data: {
+                labels: topicLabels,
+                datasets: [{
+                    data: topicErrorCounts,
+                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
+        });
+        activeCharts.push(pieChart);
+    }
+
+    // 3. Render Topic Error Rate (Bar)
+    if (document.getElementById('subTopicBar') && topicLabels.length > 0) {
+        const barChart = new Chart(document.getElementById('subTopicBar'), {
+            type: 'bar',
+            data: {
+                labels: topicLabels,
+                datasets: [{
+                    label: 'Error Rate %',
+                    data: topicErrorRates,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 4
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } }, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        activeCharts.push(barChart);
     }
 }
 

@@ -11,11 +11,11 @@ Students often face difficulty in understanding their performance trends across 
 
 There is a critical need for a tool that can collect past exam performance data and visually represent progress to enable better decision-making.
 
-💡 The Solution
 
 InsightScore addresses this by providing a centralized dashboard where students can log their exam results and topic-wise performance. The system uses data analytics to:
 
 Visualize Progress: Interactive Line, Bar, and Pie charts show trends over time.
+💡 The Solution
 
 Pinpoint Weaknesses: Algorithms calculate error percentages to highlight specific weak topics.
 

@@ -75,21 +75,21 @@ FPDF (PDF Report generation)
 
 Flask-Mail (SMTP Email services)
 
-📂 Project Structure
+### 📂 Project Structure
 
+```text
 InsightScore/
-├── app.py                 # Main Flask application entry point
-├── users.xlsx             # User database (Auto-generated)
-├── exams_data.json        # Exam records storage (Auto-generated)
 ├── static/
-│   ├── style.css          # Custom styles and animations
-│   ├── script.js          # Frontend logic, Chart.js config, API calls
-│   ├── auth.js            # Authentication handling logic
-│   └── uploads/           # User profile pictures
-└── templates/
-    ├── index.html         # Main Dashboard UI
-    └── login.html         # Login/Register/Forgot Password UI
-
+│   ├── uploads/            # User profile pictures
+│   ├── auth.js             # Authentication handling logic
+│   ├── script.js           # Frontend logic, Chart.js config, API calls
+│   └── style.css           # Custom styles and animations
+├── templates/
+│   ├── index.html          # Main Dashboard UI
+│   └── login.html          # Login/Register/Forgot Password UI
+├── app.py                  # Main Flask application entry point
+├── exams_data.json         # Exam records storage (Auto-generated)
+└── users.xlsx              # User database (Auto-generated)
 
 ⚙️ Installation & Setup
 

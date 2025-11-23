@@ -188,10 +188,9 @@ def handle_exams():
 def send_report():
     if 'user' not in session: return jsonify({'status': 'error'}), 403
     data = request.json
-    
-    # 1. Get the email from the frontend request (or default to session email)
     target_email = data.get('email', session['user'])
     
+    # 1. Generate PDF
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=16)
@@ -211,20 +210,25 @@ def send_report():
         
     filename = f"report_{session['user']}.pdf"
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Ensure PDF is actually written
     pdf.output(file_path)
     
-    # 2. Send the Email
+    # 2. Send Email
     try:
         msg = Message("Your InsightScore Report",
                       sender=app.config['MAIL_USERNAME'],
                       recipients=[target_email])
-        msg.body = f"Hello,\n\nPlease find attached your performance report for account: {session['user']}.\n\nBest,\nInsightScore Team"
+        msg.body = "Attached is your performance report."
         
-        with app.open_resource(file_path) as fp:
+        # --- FIX IS HERE ---
+        # Use standard open() instead of app.open_resource()
+        with open(file_path, 'rb') as fp:
             msg.attach(filename, "application/pdf", fp.read())
+        # -------------------
             
         mail.send(msg)
-        return jsonify({'status': 'success', 'message': f'Report sent successfully to {target_email}'})
+        return jsonify({'status': 'success', 'message': f'Report sent to {target_email}'})
     
     except Exception as e:
         print(f"Mail Error: {e}")
@@ -232,3 +236,4 @@ def send_report():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+

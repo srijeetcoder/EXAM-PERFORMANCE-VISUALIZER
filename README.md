@@ -1,5 +1,19 @@
+# CREDITS
 
-### 📈 InsightScore - Exam Performance Visualizer
+#### SRIJEET CHATTERJEE (FULL STACK DEVELOPER + WEBSITE LAUNCHER)
+
+#### PARVAZ MUSHARRAF HOSSAIN (TEAM LEADER + FRONT END DEVELOPER)
+
+#### ABDUL RAHMAN SHAIKH (BACK END DEVELOPER)
+
+#### SAGNIK UPADHYAY (UIX DEVELOPER)
+
+#### LINK TO THE WEBSITE -> 
+
+```markdown
+https://insightscore.pythonanywhere.com/
+```
+# 📈 InsightScore - Exam Performance Visualizer
 
 Transforming raw academic data into actionable visual insights.
 

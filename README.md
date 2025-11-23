@@ -126,21 +126,29 @@ python app.py
 
 #### LOGIN PAGE->
 <img src="SCREENSHOTS/image1.jpeg" alt="login" width="80%"/>
+
 #### REGISTRATION PAGE->
 <img src="SCREENSHOTS/image2.jpeg" alt="login" width="80%"/>
-##### RESET PASSWORD/DIRECT LOGIN PAGE->
+
+#### RESET PASSWORD/DIRECT LOGIN PAGE->
 <img src="SCREENSHOTS/image3.jpeg" alt="login" width="80%"/>
-###### OTP VERIFICATION PAGE->
+
+#### OTP VERIFICATION PAGE->
 <img src="SCREENSHOTS/image4.jpeg" alt="login" width="80%"/>
-####### DASHBOARD SHOWING OVERALL PERFORMANCE->
+
+#### DASHBOARD SHOWING OVERALL PERFORMANCE->
 <img src="SCREENSHOTS/image5.jpeg" alt="login" width="80%"/>
 <img src="SCREENSHOTS/image6.jpeg" alt="login" width="80%"/>
-######## CONTENT NAVIGATION SIDE BAR->
+
+#### CONTENT NAVIGATION SIDE BAR->
 <img src="SCREENSHOTS/image11.jpeg" alt="login" width="80%"/>
-######### INDIVIDUAL SUBJECT ANALYSIS PAGE->
+
+#### INDIVIDUAL SUBJECT ANALYSIS PAGE->
+
 ##### SUBJECT 1 (PHYSICS)->
 <img src="SCREENSHOTS/image7.jpeg" alt="login" width="80%"/>
 <img src="SCREENSHOTS/image8.jpeg" alt="login" width="80%"/>
+
 ##### SUBJECT 2 (CHEMISTRY)->
 <img src="SCREENSHOTS/image9.jpeg" alt="login" width="80%"/>
 <img src="SCREENSHOTS/image10.jpeg" alt="login" width="80%"/>

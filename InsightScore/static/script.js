@@ -43,7 +43,8 @@ async function uploadProfilePic(input) {
             const res = await fetch('/api/upload-pic', { method: 'POST', body: formData });
             const data = await res.json();
             if (data.status === 'success') {
-                document.getElementById('profile-img').src = '/static/uploads/' + data.filename;
+                // Add timestamp to bust cache
+                document.getElementById('profile-img').src = '/static/uploads/' + data.filename + '?t=' + new Date().getTime();
             } else {
                 alert('Upload failed: ' + (data.message || 'Unknown error'));
             }
@@ -78,11 +79,13 @@ async function saveData(newExamsList) {
 async function sendPdfReport() {
     const stats = getStats();
     
-    // --- DIALOG BOX FOR EMAIL ---
-    const email = prompt("Enter the email address to send the report to:");
+    // Get the user's email from the sidebar
+    const userEmailEl = document.querySelector('#sidebar .text-sm.text-slate-400');
+    const userEmail = userEmailEl ? userEmailEl.textContent : '';
+    
+    const email = prompt("Enter the email address to send the report to:", userEmail);
     if (!email) return; // Exit if canceled or empty
 
-    // Prepare summary payload including the target email
     const payload = {
         email: email, 
         totalExams: stats.totalExams,
@@ -116,21 +119,23 @@ const getStats = () => {
         ? (exams.reduce((sum, e) => sum + (parseFloat(e.marksScored) / parseFloat(e.totalMarks)), 0) / totalExams * 100).toFixed(1) + '%'
         : '0%';
         
-    // Aggregate topics
     let allTopics = [];
     exams.forEach(e => {
-        if (e.topics) {
+        if (e.topics && Array.isArray(e.topics)) {
             e.topics.forEach(t => {
-                allTopics.push({
-                    topic: t.name,
-                    errorPercentage: ((parseInt(t.incorrectQuestions) / parseInt(t.totalQuestions)) * 100).toFixed(1),
-                    exam: e.name
-                });
+                const total = parseInt(t.totalQuestions);
+                const incorrect = parseInt(t.incorrectQuestions);
+                if (total > 0) {
+                    allTopics.push({
+                        topic: t.name,
+                        errorPercentage: ((incorrect / total) * 100).toFixed(1),
+                        exam: e.name
+                    });
+                }
             });
         }
     });
     
-    // Filter weaknesses (>0% error) and sort desc
     const weaknesses = allTopics
         .filter(t => parseFloat(t.errorPercentage) > 0)
         .sort((a, b) => parseFloat(b.errorPercentage) - parseFloat(a.errorPercentage))
@@ -144,7 +149,6 @@ const getStats = () => {
 function renderApp(subject = selectedSubject) {
     selectedSubject = subject;
     
-    // Cleanup old charts
     activeCharts.forEach(c => c.destroy());
     activeCharts = [];
     
@@ -180,6 +184,9 @@ function renderMainContent() {
                 <p class="text-slate-500">Click "Add Exam Data" to get started.</p>
             </div>
         `;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
         return;
     }
 
@@ -194,7 +201,6 @@ function renderOverview(container) {
     const stats = getStats();
     const subjects = getSubjects();
     
-    // Data for Charts
     const subjectExamCounts = subjects.map(sub => exams.filter(e => e.subject === sub).length);
     const subjectAvgScores = subjects.map(sub => {
         const subExams = exams.filter(e => e.subject === sub);
@@ -203,14 +209,12 @@ function renderOverview(container) {
         return (avg * 100).toFixed(1);
     });
 
-    // Calculate Error Counts per Subject
     const subjectErrorCounts = subjects.map(sub => {
         return exams.filter(e => e.subject === sub).reduce((acc, e) => {
             return acc + (e.topics ? e.topics.reduce((tAcc, t) => tAcc + parseInt(t.incorrectQuestions || 0), 0) : 0);
         }, 0);
     });
 
-    // Weakness List HTML
     const weakHtml = stats.weaknesses.length 
         ? stats.weaknesses.map(w => `
             <div class="flex justify-between items-center p-3 bg-red-500/10 border border-red-500/20 rounded-lg mb-2">
@@ -262,7 +266,6 @@ function renderOverview(container) {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- PIE CHART: Subject Distribution -->
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <div class="flex items-center gap-2 mb-6">
                     <i data-lucide="pie-chart" class="text-yellow-400"></i>
@@ -273,7 +276,6 @@ function renderOverview(container) {
                 </div>
             </div>
 
-            <!-- PIE CHART: Error Distribution -->
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <div class="flex items-center gap-2 mb-6">
                     <i data-lucide="alert-triangle" class="text-red-400"></i>
@@ -285,7 +287,6 @@ function renderOverview(container) {
             </div>
         </div>
 
-        <!-- BAR CHART: Average Score -->
         <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mb-8">
             <div class="flex items-center gap-2 mb-6">
                 <i data-lucide="bar-chart-3" class="text-green-400"></i>
@@ -366,18 +367,14 @@ function renderOverview(container) {
 }
 
 function renderSubjectView(container) {
-    // Filter exams
     const subExams = exams.filter(e => e.subject === selectedSubject);
-    
-    // Calculate subject average
     const subAvg = subExams.length 
         ? (subExams.reduce((s, e) => s + (parseFloat(e.marksScored) / parseFloat(e.totalMarks)), 0) / subExams.length * 100).toFixed(1)
         : '0.0';
 
-    // --- AGGREGATE TOPIC DATA FOR CHARTS & TABLE ---
     let topicStats = {};
     subExams.forEach(e => {
-        if(e.topics) {
+        if(e.topics && Array.isArray(e.topics)) {
             e.topics.forEach(t => {
                 if(!topicStats[t.name]) {
                     topicStats[t.name] = { total: 0, incorrect: 0 };
@@ -390,36 +387,39 @@ function renderSubjectView(container) {
 
     const topicLabels = Object.keys(topicStats);
     const topicErrorCounts = topicLabels.map(t => topicStats[t].incorrect);
-    const topicErrorRates = topicLabels.map(t => ((topicStats[t].incorrect / topicStats[t].total) * 100).toFixed(1));
+    const topicErrorRates = topicLabels.map(t => {
+        const total = topicStats[t].total;
+        const rate = total > 0 ? ((topicStats[t].incorrect / total) * 100) : 0;
+        return isNaN(rate) ? 0 : rate.toFixed(1);
+    });
 
-    // Exam History Rows
+    const topicRows = topicLabels.map(t => {
+        const total = topicStats[t].total;
+        const incorrect = topicStats[t].incorrect;
+        const errPct = total > 0 ? ((incorrect / total) * 100).toFixed(1) : '0.0';
+        let colorClass = parseFloat(errPct) <= 15 ? 'text-green-400' : parseFloat(errPct) <= 40 ? 'text-yellow-400' : 'text-red-400';
+        
+        return `
+            <tr class="border-b border-slate-700 hover:bg-slate-800 transition">
+                <td class="p-4 text-slate-200 font-medium">${t}</td>
+                <td class="p-4 text-right text-slate-400">${total}</td>
+                <td class="p-4 text-right text-red-300">${incorrect}</td>
+                <td class="p-4 text-right font-bold ${colorClass}">${errPct}%</td>
+            </tr>
+        `;
+    }).join('');
+
     const examRows = subExams.map(e => {
         const pct = (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1);
         let colorClass = pct >= 75 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400';
         return `
-            <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition">
+            <tr class="border-b border-slate-700 hover:bg-slate-800 transition">
                 <td class="p-4">${e.name}</td>
                 <td class="p-4 text-right">${e.marksScored} / ${e.totalMarks}</td>
                 <td class="p-4 text-right font-bold ${colorClass}">${pct}%</td>
                 <td class="p-4 text-center">
                     <button onclick="deleteExam(${e.id})" class="text-slate-500 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </td>
-            </tr>
-        `;
-    }).join('');
-
-    // Topic Analysis Rows
-    const topicRows = topicLabels.map(t => {
-        const total = topicStats[t].total;
-        const incorrect = topicStats[t].incorrect;
-        const errPct = ((incorrect / total) * 100).toFixed(1);
-        let colorClass = errPct <= 15 ? 'text-green-400' : errPct <= 40 ? 'text-yellow-400' : 'text-red-400';
-        return `
-            <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition">
-                <td class="p-4 text-slate-200 font-medium">${t}</td>
-                <td class="p-4 text-right text-slate-400">${total}</td>
-                <td class="p-4 text-right text-red-300">${incorrect}</td>
-                <td class="p-4 text-right font-bold ${colorClass}">${errPct}%</td>
             </tr>
         `;
     }).join('');
@@ -437,125 +437,105 @@ function renderSubjectView(container) {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Exam History Table -->
-            <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <h3 class="text-lg font-bold mb-4">Exam History</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-slate-300">
-                        <thead>
-                            <tr class="text-xs uppercase bg-slate-900/50 text-slate-500">
-                                <th class="p-3 text-left rounded-l-lg">Exam Name</th>
-                                <th class="p-3 text-right">Score</th>
-                                <th class="p-3 text-right">Percentage</th>
-                                <th class="p-3 text-center rounded-r-lg">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>${examRows}</tbody>
-                    </table>
-                </div>
+            <div class="lg:col-span-2 flex flex-col gap-8">
                 
-                <!-- NEW TOPIC TABLE -->
-                <h3 class="text-lg font-bold mb-4 mt-8 border-t border-slate-700 pt-6">Topic-Wise Performance Analysis</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-slate-300">
-                        <thead>
-                            <tr class="text-xs uppercase bg-slate-900/50 text-slate-500">
-                                <th class="p-3 text-left rounded-l-lg">Topic</th>
-                                <th class="p-3 text-right">Total Qs</th>
-                                <th class="p-3 text-right">Incorrect</th>
-                                <th class="p-3 text-right rounded-r-lg">Error Rate %</th>
-                            </tr>
-                        </thead>
-                        <tbody>${topicRows.length ? topicRows : '<tr><td colspan="4" class="p-4 text-center text-slate-500">No topic data available</td></tr>'}</tbody>
-                    </table>
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-purple-400"></i> Exam History</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-slate-300">
+                            <thead>
+                                <tr class="text-xs uppercase bg-slate-900/50 text-slate-500">
+                                    <th class="p-3 text-left rounded-l-lg">Exam Name</th>
+                                    <th class="p-3 text-right">Score</th>
+                                    <th class="p-3 text-right">Percentage</th>
+                                    <th class="p-3 text-center rounded-r-lg">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>${examRows}</tbody>
+                        </table>
+                    </div>
                 </div>
+
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5 text-blue-400"></i> Topic Performance Breakdown</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-slate-300">
+                            <thead>
+                                <tr class="text-xs uppercase bg-slate-900/50 text-slate-500">
+                                    <th class="p-3 text-left rounded-l-lg">Topic</th>
+                                    <th class="p-3 text-right">Total Qs</th>
+                                    <th class="p-3 text-right">Incorrect</th>
+                                    <th class="p-3 text-right rounded-r-lg">Error Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>${topicRows.length ? topicRows : '<tr><td colspan="4" class="p-4 text-center text-slate-500">No topic data yet</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Score Progress Bar Chart -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <h3 class="text-lg font-bold mb-4">Progress</h3>
-                <div class="chart-container">
-                    <canvas id="subChart"></canvas>
+            <div class="flex flex-col gap-6">
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-4">Progress</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="subChart"></canvas>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- NEW ROW: TOPIC ANALYSIS CHARTS -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- 1. Topic Error Distribution (Pie) -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="pie-chart" class="text-yellow-400"></i>
-                    <h3 class="text-xl font-bold">Topic Error Distribution (Total Errors)</h3>
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-4">Error Distribution</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="subTopicPie"></canvas>
+                    </div>
                 </div>
-                <div class="chart-container" style="height: 250px;">
-                    <canvas id="subTopicPie"></canvas>
-                </div>
-            </div>
 
-            <!-- 2. Topic Weakness Analysis (Bar) -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="bar-chart-2" class="text-red-400"></i>
-                    <h3 class="text-xl font-bold">Topic Error Rate % (Weakness)</h3>
-                </div>
-                <div class="chart-container" style="height: 250px;">
-                    <canvas id="subTopicBar"></canvas>
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-4">Weakest Topics</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="subTopicBar"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 
-    // 1. Render Subject Progress Bar Chart (Existing)
+    // Render Charts
     if (document.getElementById('subChart')) {
-        const chart = new Chart(document.getElementById('subChart'), {
-            type: 'bar',
+        activeCharts.push(new Chart(document.getElementById('subChart'), {
+            type: 'line',
             data: {
                 labels: subExams.map(e => e.name),
                 datasets: [{
                     label: 'Score %',
                     data: subExams.map(e => (parseFloat(e.marksScored) / parseFloat(e.totalMarks) * 100).toFixed(1)),
-                    backgroundColor: '#a855f7', borderRadius: 6
+                    borderColor: '#a855f7', tension: 0.4, fill: true, backgroundColor: 'rgba(168, 85, 247, 0.1)'
                 }]
             },
-            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } }, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-        activeCharts.push(chart);
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } }
+        }));
     }
 
-    // 2. Render Topic Error Distribution (Pie)
-    if (document.getElementById('subTopicPie') && topicLabels.length > 0) {
-        const pieChart = new Chart(document.getElementById('subTopicPie'), {
-            type: 'pie',
+    if (document.getElementById('subTopicPie') && topicLabels.length) {
+        activeCharts.push(new Chart(document.getElementById('subTopicPie'), {
+            type: 'doughnut',
             data: {
                 labels: topicLabels,
-                datasets: [{
-                    data: topicErrorCounts,
-                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'],
-                    borderWidth: 0
-                }]
+                datasets: [{ data: topicErrorCounts, backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'], borderWidth: 0 }]
             },
-            options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
-        });
-        activeCharts.push(pieChart);
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        }));
     }
 
-    // 3. Render Topic Error Rate (Bar)
-    if (document.getElementById('subTopicBar') && topicLabels.length > 0) {
-        const barChart = new Chart(document.getElementById('subTopicBar'), {
+    if (document.getElementById('subTopicBar') && topicLabels.length) {
+        activeCharts.push(new Chart(document.getElementById('subTopicBar'), {
             type: 'bar',
             data: {
                 labels: topicLabels,
-                datasets: [{
-                    label: 'Error Rate %',
-                    data: topicErrorRates,
-                    backgroundColor: '#ef4444',
-                    borderRadius: 4
-                }]
+                datasets: [{ label: 'Error %', data: topicErrorRates, backgroundColor: '#ef4444', borderRadius: 4 }]
             },
-            options: { scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { grid: { display: false } } }, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-        activeCharts.push(barChart);
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } }
+        }));
     }
 }
 
@@ -578,12 +558,11 @@ function addTopic() {
             incorrectQuestions: parseInt(inc)
         });
         
-        // Clear inputs
         document.getElementById('tn').value = '';
         document.getElementById('tt').value = '';
         document.getElementById('ti').value = '';
         
-        renderForm(); // Re-render form to show added topic list
+        renderForm(); 
     }
 }
 
@@ -605,14 +584,14 @@ function renderForm() {
             <span>${t.name}</span>
             <div class="flex items-center gap-3">
                 <span class="text-red-400 font-mono">${t.incorrectQuestions}/${t.totalQuestions}</span>
-                <button onclick="removeTopic(${i})" class="text-slate-400 hover:text-red-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <button type="button" onclick="removeTopic(${i})" class="text-slate-400 hover:text-red-400"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
         </div>
     `).join('');
 
     container.innerHTML = `
         <div class="bg-slate-800 border border-purple-500/30 p-6 rounded-2xl shadow-2xl relative animate-in fade-in slide-in-from-top-4 duration-300">
-            <button onclick="toggleForm()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition"><i data-lucide="x"></i></button>
+            <button type="button" onclick="toggleForm()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition"><i data-lucide="x"></i></button>
             
             <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <i data-lucide="file-plus" class="text-purple-500"></i> Add New Exam Data
@@ -644,7 +623,7 @@ function renderForm() {
                     <input id="tn" class="flex-1 p-2 rounded bg-slate-800 border border-slate-600 text-sm" placeholder="Topic Name">
                     <input id="tt" type="number" class="w-20 p-2 rounded bg-slate-800 border border-slate-600 text-sm" placeholder="Total Qs">
                     <input id="ti" type="number" class="w-24 p-2 rounded bg-slate-800 border border-slate-600 text-sm" placeholder="Incorrect Qs">
-                    <button onclick="addTopic()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    <button type="button" onclick="addTopic()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
                 </div>
                 
                 <div class="max-h-32 overflow-y-auto custom-scrollbar">
@@ -652,7 +631,7 @@ function renderForm() {
                 </div>
             </div>
 
-            <button onclick="saveExamEntry()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg transition transform active:scale-95">
+            <button type="button" onclick="saveExamEntry()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg transition transform active:scale-95">
                 Save Exam Data
             </button>
         </div>
@@ -668,7 +647,6 @@ async function saveExamEntry() {
         return;
     }
     
-    // Add ID and timestamp
     const finalEntry = {
         ...currentExam,
         id: Date.now(),
@@ -679,7 +657,6 @@ async function saveExamEntry() {
     exams.push(finalEntry);
     await saveData(exams);
     
-    // Reset
     currentExam = { name: '', date: new Date().toISOString().split('T')[0], subject: '', totalMarks: '', marksScored: '', topics: [] };
     showForm = false;
     renderApp();
@@ -692,7 +669,8 @@ function deleteExam(id) {
     }
 }
 
-// Explicitly Expose Functions to Global Scope (Window)
+// **CRITICAL FIX**: Expose functions to the global scope
+// This makes sure the 'onclick' attributes in the HTML can find these functions
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;
 window.uploadProfilePic = uploadProfilePic;

@@ -7,17 +7,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- UPDATED: Added ?v=2 to force browser to reload the file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <!-- We will use the Inter font -->
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
 <body class="bg-slate-900 text-white overflow-x-hidden font-sans">
 
-    <!-- SLIDING SIDEBAR -->
+    <!-- SIDEBAR -->
+    <!-- 1. REMOVED 'md:translate-x-0' -->
     <div id="sidebar" class="fixed top-0 left-0 h-full w-80 bg-slate-800 border-r border-slate-700 transform -translate-x-full transition-transform duration-300 z-50 flex flex-col shadow-2xl">
-        
-        <!-- Profile Section -->
+        <!-- Profile -->
         <div class="p-6 border-b border-slate-700 flex flex-col items-center bg-slate-800/50">
             <div class="relative group cursor-pointer mb-4" onclick="document.getElementById('pic-upload').click()">
-                <img id="profile-img" src="{{ user.pic_url }}" class="w-24 h-24 rounded-full object-cover border-4 border-purple-500 shadow-lg">
+                <img id="profile-img" 
+                     src="{{ user.pic_url }}" 
+                     class="w-24 h-24 rounded-full object-cover border-4 border-purple-500 shadow-lg">
                 <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition backdrop-blur-sm">
                     <i data-lucide="camera" class="text-white"></i>
                 </div>
@@ -27,31 +36,33 @@
             <p class="text-sm text-slate-400">{{ user.email }}</p>
         </div>
 
-        <!-- Sidebar Navigation -->
+        <!-- Nav -->
         <div class="flex-1 overflow-y-auto p-4 space-y-2">
             
-            <!-- 1. Dialog Overview -->
-            <button onclick="renderApp(null); closeSidebar()" class="w-full text-left p-3 rounded-lg hover:bg-slate-700 flex items-center gap-3 transition text-slate-300 hover:text-white">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 text-purple-400"></i> 
-                <span class="font-bold">Dialog Overview</span>
+            <button onclick="renderApp(null); closeSidebar()" class="w-full text-left p-3 rounded-lg hover:bg-slate-700 flex items-center gap-3 transition text-slate-300 hover:text-white group">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 text-purple-400 group-hover:text-white transition"></i> Overview
             </button>
             
-            <!-- 2. Subject Wise Analysis -->
-            <div class="mt-6">
-                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 pl-2">Subject Wise Analysis</div>
-                <div id="sidebar-subjects" class="space-y-1 pl-2 border-l-2 border-slate-700 ml-3">
-                    <!-- JS injects subjects here -->
-                </div>
-            </div>
+            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 pl-2">Subject Analysis</div>
+            <div id="sidebar-subjects" class="space-y-1"></div>
 
-            <!-- 3. Add Subject Button -->
             <button onclick="toggleForm(); closeSidebar()" class="w-full mt-6 p-3 rounded-lg border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-white hover:bg-slate-700 transition flex items-center justify-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i> Add Subject
+                <i data-lucide="plus-circle" class="w-5 h-5"></i> Add Subject / Exam
             </button>
         </div>
+        
+        <!-- Footer Links -->
+        <div class="p-4 border-t border-slate-700 space-y-2">
+            <!-- FEEDBACK BUTTON -->
+            <a href="https://forms.gle/Fj74yTUM9bFfEVC16" target="_blank" rel="noopener noreferrer" class="w-full text-left p-3 rounded-lg hover:bg-slate-700 flex items-center gap-3 transition text-slate-300 hover:text-white group">
+                <i data-lucide="message-square-text" class="w-5 h-5 text-yellow-400 group-hover:text-white transition"></i> 
+                Submit Feedback
+            </a>
 
-        <div class="p-4 border-t border-slate-700">
-            <a href="/logout" class="w-full block text-center p-2 rounded text-red-400 hover:bg-red-900/20 transition">Logout</a>
+            <!-- Logout -->
+            <a href="/logout" class="w-full text-left p-3 rounded-lg text-red-400 hover:bg-red-900/20 transition flex items-center gap-2 group">
+                <i data-lucide="log-out" class="w-5 h-5"></i> Logout
+            </a>
         </div>
     </div>
 
@@ -59,32 +70,44 @@
     <div id="overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- MAIN CONTENT -->
+    <!-- 2. REMOVED 'md:pl-80' -->
     <div class="max-w-7xl mx-auto p-6 transition-all duration-300 min-h-screen flex flex-col">
-        <!-- Top Bar -->
         <div class="flex items-center justify-between mb-8">
+            <!-- 3. REMOVED 'md:hidden' -->
             <button onclick="openSidebar()" class="p-2 hover:bg-slate-800 rounded-lg text-white transition">
                 <i data-lucide="menu" class="w-8 h-8"></i>
             </button>
+            <!-- Spacer for non-mobile -->
+            <!-- 4. REMOVED 'hidden' and 'md:block' -->
+            <div class="w-10"></div>
+            
             <h1 class="text-2xl font-bold flex items-center gap-3">
                 <i data-lucide="trending-up" class="text-purple-500 w-8 h-8"></i> InsightScore
             </h1>
             <div class="w-10"></div>
         </div>
 
-        <!-- Main Action Button -->
         <div class="flex justify-end mb-6">
             <button onclick="toggleForm()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:shadow-green-900/20 transition transform hover:-translate-y-0.5">
-                <i data-lucide="plus" class="w-5 h-5"></i> Add Subject
+                <i data-lucide="plus" class="w-5 h-5"></i> Add Exam Data
             </button>
         </div>
 
-        <!-- Form Container -->
         <div id="form-container" class="mb-8"></div>
-
-        <!-- Content Container -->
+        
+        <!-- This container will grow to fill the space -->
         <div id="main-content" class="flex-1"></div>
+
+        <!-- FOOTER -->
+        <footer class="text-center p-4 text-xs text-slate-500 mt-auto pt-10">
+            Made with <span class="text-red-400">❤️</span> by 
+            <a href="https://github.com/srijeetcoder" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-400 hover:text-purple-400 transition">
+                srijeetcoder
+            </a>
+        </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- UPDATED: Added ?v=2 to force browser to reload the file -->
+    <script src="{{ url_for('static', filename='script.js') }}?v=2"></script>
 </body>
 </html>

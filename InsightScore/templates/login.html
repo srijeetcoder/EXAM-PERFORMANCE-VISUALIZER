@@ -6,70 +6,120 @@
     <title>Login - InsightScore</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- We will use the Inter font -->
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
+<body class="bg-slate-900 text-slate-200 flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-2xl w-full max-w-md text-white relative">
-        <div class="text-center mb-8">
-            <i data-lucide="trending-up" class="w-12 h-12 text-purple-500 mx-auto mb-2"></i>
-            <h1 class="text-3xl font-bold">InsightScore</h1>
-            <p class="text-slate-400">Exam Performance Tracker</p>
+    <!-- Main Content Box -->
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="flex justify-center items-center gap-3 mb-6">
+            <i data-lucide="trending-up" class="text-purple-500 w-10 h-10"></i>
+            <h1 class="text-3xl font-bold text-white">InsightScore</h1>
         </div>
+        
+        <!-- Main Card -->
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl shadow-2xl p-8 backdrop-blur-lg">
+            
+            <!-- Login Form (Default) -->
+            <div id="login-form">
+                <h2 class="text-2xl font-bold text-center text-white mb-6">Welcome Back</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="login-email" class="text-sm font-medium text-slate-400">Email</label>
+                        <input type="email" id="login-email" placeholder="you@example.com" class="mt-1 w-full p-3 rounded-lg bg-slate-900 border border-slate-600 focus:border-purple-500 focus:ring-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="login-pass" class="text-sm font-medium text-slate-400">Password</label>
+                        <!-- MODIFIED: Added relative positioning -->
+                        <div class="relative">
+                            <input type="password" id="login-pass" placeholder="••••••••" class="mt-1 w-full p-3 rounded-lg bg-slate-900 border border-slate-600 focus:border-purple-500 focus:ring-purple-500 focus:outline-none pr-10">
+                            <!-- NEW: View Password Button -->
+                            <button onclick="togglePass('login-pass')" class="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-white">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="loginUser()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold p-3 rounded-lg shadow-lg transition transform active:scale-95">Login</button>
+                    <p id="login-error" class="text-sm text-red-400 text-center"></p>
+                </div>
+                <div class="text-sm text-center text-slate-400 mt-6">
+                    <button onclick="toggleView('forgot-form')" class="hover:text-purple-400 transition">Forgot Password?</button>
+                    <span class="mx-2 text-slate-600">|</span>
+                    <button onclick="toggleView('register-form')" class="hover:text-purple-400 transition">Create Account</button>
+                </div>
+            </div>
 
-        <!-- LOGIN FORM -->
-        <div id="login-form">
-            <h2 class="text-xl font-semibold mb-4 text-purple-400">Login</h2>
-            <input id="l-email" type="email" placeholder="Email" class="auth-input">
-            <div class="relative mb-4">
-                <input id="l-pass" type="password" placeholder="Password" class="auth-input">
-                <button onclick="togglePass('l-pass')" class="pass-toggle"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            <!-- Registration Form (Hidden) -->
+            <div id="register-form" class="hidden">
+                <h2 class="text-2xl font-bold text-center text-white mb-6">Create Account</h2>
+                <div class="space-y-4">
+                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600">
+                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600">
+                    <input type="text" id="reg-phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600">
+                    <!-- MODIFIED: Added relative positioning -->
+                    <div class="relative">
+                        <input type="password" id="reg-pass" placeholder="Create Password" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600 pr-10">
+                        <!-- NEW: View Password Button -->
+                        <button onclick="togglePass('reg-pass')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <button onclick="registerUser()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold p-3 rounded-lg shadow-lg transition">Create Account</button>
+                    <p id="reg-error" class="text-sm text-red-400 text-center"></p>
+                </div>
+                <div class="text-sm text-center text-slate-400 mt-6">
+                    <button onclick="toggleView('login-form')" class="hover:text-purple-400 transition">Back to Login</button>
+                </div>
             </div>
-            <button onclick="handleAuth('login')" class="btn-primary bg-purple-600 hover:bg-purple-700">Login</button>
-            <div class="flex justify-between mt-4 text-sm text-slate-400">
-                <button onclick="switchView('register')" class="hover:text-white">Create Account</button>
-                <button onclick="switchView('forgot')" class="hover:text-white">Forgot Password?</button>
-            </div>
-        </div>
 
-        <!-- REGISTER FORM -->
-        <div id="register-form" class="hidden">
-            <h2 class="text-xl font-semibold mb-4 text-green-400">Register</h2>
-            <input id="r-name" type="text" placeholder="Full Name" class="auth-input">
-            <input id="r-phone" type="text" placeholder="Phone Number" class="auth-input">
-            <input id="r-email" type="email" placeholder="Email" class="auth-input">
-            <div class="relative mb-4">
-                <input id="r-pass" type="password" placeholder="Password" class="auth-input">
-                <button onclick="togglePass('r-pass')" class="pass-toggle"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            <!-- Forgot Password Form (Hidden) -->
+            <div id="forgot-form" class="hidden">
+                <h2 class="text-2xl font-bold text-center text-white mb-6">Reset Password</h2>
+                <div class="space-y-4" id="forgot-step1">
+                    <input type="email" id="forgot-email" placeholder="Enter your email" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600">
+                    <button onclick="sendOTP()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-lg transition">Send OTP</button>
+                    <p id="forgot-error" class="text-sm text-red-400 text-center"></p>
+                </div>
+                <div class="space-y-4 hidden" id="forgot-step2">
+                    <input type="text" id="forgot-otp" placeholder="Enter OTP" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-600">
+                    <button onclick="verifyOTP()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold p-3 rounded-lg shadow-lg transition">Verify OTP</button>
+                    <p id="otp-error" class="text-sm text-red-400 text-center"></p>
+                </div>
+                <div class="text-sm text-center text-slate-400 mt-6">
+                    <button onclick="toggleView('login-form')" class="hover:text-purple-400 transition">Back to Login</button>
+                </div>
             </div>
-            <button onclick="handleAuth('register')" class="btn-primary bg-green-600 hover:bg-green-700">Register</button>
-            <button onclick="switchView('login')" class="w-full mt-4 text-slate-400 text-sm hover:text-white">Back to Login</button>
-        </div>
 
-        <!-- FORGOT PASSWORD -->
-        <div id="forgot-form" class="hidden">
-            <h2 class="text-xl font-semibold mb-4 text-yellow-400">Reset Password</h2>
-            <div id="step-1">
-                <input id="f-email" type="email" placeholder="Enter Email for OTP" class="auth-input">
-                <button onclick="sendOTP()" class="btn-primary bg-yellow-600 hover:bg-yellow-700 text-slate-900 font-bold">Send OTP</button>
-            </div>
-            <div id="step-2" class="hidden">
-                <p class="text-xs text-slate-400 mb-2">OTP sent to server console (Mock)</p>
-                <input id="f-otp" type="text" placeholder="Enter 6-Digit OTP" class="auth-input text-center tracking-widest text-xl">
-                <button onclick="verifyOTP()" class="btn-primary bg-purple-600 hover:bg-purple-700">Verify & Login</button>
-            </div>
-            <button onclick="switchView('login')" class="w-full mt-4 text-slate-400 text-sm hover:text-white">Back to Login</button>
         </div>
     </div>
 
-    <style>
-        .auth-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; margin-bottom: 12px; outline: none; }
-        .auth-input:focus { border-color: #a855f7; }
-        .btn-primary { width: 100%; padding: 12px; border-radius: 8px; color: white; font-weight: bold; transition: 0.2s; }
-        .pass-toggle { position: absolute; right: 12px; top: 12px; color: #64748b; }
-        .pass-toggle:hover { color: white; }
-    </style>
-
+    <!-- FOOTER -->
+    <footer class="text-center p-4 text-xs text-slate-500 mt-8">
+        Made with <span class="text-red-400">❤️</span> by 
+        <a href="https://github.com/srijeetcoder" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-400 hover:text-purple-400 transition">
+            srijeetcoder
+        </a>
+    </footer>
+    
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='auth.js') }}"></script>
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+        function toggleView(showId) {
+            ['login-form', 'register-form', 'forgot-form'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(showId).classList.remove('hidden');
+        }
+
+        // The togglePass function is now loaded from auth.js
+    </script>
 </body>
 </html>

@@ -77,23 +77,23 @@ async function saveData(newExamsList) {
 }
 
 async function sendPdfReport() {
-    const stats = getStats();
-    
-    // Get the user's email from the sidebar
+    // Get user's name and email from the sidebar for the report
     const userEmailEl = document.querySelector('#sidebar .text-sm.text-slate-400');
     const userEmail = userEmailEl ? userEmailEl.textContent : '';
-    
+    const userNameEl = document.querySelector('#sidebar .text-xl.font-bold');
+    const userName = userNameEl ? userNameEl.textContent : 'User';
+
     const email = prompt("Enter the email address to send the report to:", userEmail);
     if (!email) return; // Exit if canceled or empty
 
+    // UPDATED PAYLOAD: We send the user's name and the raw exams array.
     const payload = {
-        email: email, 
-        totalExams: stats.totalExams,
-        avgScore: stats.avgScore,
-        weaknesses: stats.weaknesses
+        email: email,
+        userName: userName,
+        exams: exams // Send the full, raw exam data
     };
     
-    alert(`Generating PDF Report for ${email}... Please wait.`);
+    alert(`Generating detailed PDF Report for ${email}... This may take a moment.`);
     
     try {
         const res = await fetch('/api/send-report', { 
@@ -102,10 +102,10 @@ async function sendPdfReport() {
             body: JSON.stringify(payload) 
         });
         const data = await res.json();
-        alert(data.message);
+        alert(data.message); // e.g., "Sent to user@example.com"
     } catch (e) {
         console.error(e);
-        alert("Failed to send report. Ensure server email config is correct.");
+        alert("Failed to send report. Check server logs.");
     }
 }
 
@@ -128,8 +128,9 @@ const getStats = () => {
                 if (total > 0) {
                     allTopics.push({
                         topic: t.name,
-                        errorPercentage: ((incorrect / total) * 100).toFixed(1),
-                        exam: e.name
+                        subject: e.subject, // Include subject context
+                        exam: e.name,
+                        errorPercentage: ((incorrect / total) * 100)
                     });
                 }
             });
@@ -137,8 +138,8 @@ const getStats = () => {
     });
     
     const weaknesses = allTopics
-        .filter(t => parseFloat(t.errorPercentage) > 0)
-        .sort((a, b) => parseFloat(b.errorPercentage) - parseFloat(a.errorPercentage))
+        .filter(t => t.errorPercentage > 0)
+        .sort((a, b) => b.errorPercentage - a.errorPercentage)
         .slice(0, 5);
         
     return { totalExams, avgScore, weaknesses };
@@ -197,10 +198,12 @@ function renderMainContent() {
     }
 }
 
+// --- THIS IS THE FUNCTION THAT BUILDS THE MAIN PAGE ---
 function renderOverview(container) {
     const stats = getStats();
     const subjects = getSubjects();
     
+    // Data for Charts
     const subjectExamCounts = subjects.map(sub => exams.filter(e => e.subject === sub).length);
     const subjectAvgScores = subjects.map(sub => {
         const subExams = exams.filter(e => e.subject === sub);
@@ -209,12 +212,14 @@ function renderOverview(container) {
         return (avg * 100).toFixed(1);
     });
 
+    // Calculate Error Counts per Subject
     const subjectErrorCounts = subjects.map(sub => {
         return exams.filter(e => e.subject === sub).reduce((acc, e) => {
             return acc + (e.topics ? e.topics.reduce((tAcc, t) => tAcc + parseInt(t.incorrectQuestions || 0), 0) : 0);
         }, 0);
     });
 
+    // Weakness List HTML
     const weakHtml = stats.weaknesses.length 
         ? stats.weaknesses.map(w => `
             <div class="flex justify-between items-center p-3 bg-red-500/10 border border-red-500/20 rounded-lg mb-2">
@@ -222,12 +227,13 @@ function renderOverview(container) {
                     <span class="font-bold text-red-200">${w.topic}</span>
                     <span class="text-xs text-red-400 ml-2">in ${w.exam}</span>
                 </div>
-                <span class="font-bold text-red-400">${w.errorPercentage}% Error</span>
+                <span class="font-bold text-red-400">${w.errorPercentage.toFixed(1)}% Error</span>
             </div>
           `).join('')
         : '<div class="p-4 text-slate-500 text-center">No weaknesses found! Great job.</div>';
 
     container.innerHTML = `
+        <!-- STATS CARDS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <p class="text-slate-400 text-sm font-bold uppercase">Total Exams</p>
@@ -243,6 +249,7 @@ function renderOverview(container) {
             </div>
         </div>
 
+        <!-- WEAKEST TOPICS & PERFORMANCE TREND -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <div class="flex items-center gap-2 mb-6">
@@ -265,6 +272,7 @@ function renderOverview(container) {
             </div>
         </div>
 
+        <!-- PIE CHARTS (from screenshots) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                 <div class="flex items-center gap-2 mb-6">
@@ -287,6 +295,7 @@ function renderOverview(container) {
             </div>
         </div>
 
+        <!-- BAR CHART (from screenshots) -->
         <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mb-8">
             <div class="flex items-center gap-2 mb-6">
                 <i data-lucide="bar-chart-3" class="text-green-400"></i>
@@ -297,6 +306,7 @@ function renderOverview(container) {
             </div>
         </div>
 
+        <!-- PDF REPORT BUTTON -->
         <div class="mt-10 text-center">
             <button onclick="sendPdfReport()" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white px-8 py-3 rounded-full shadow-lg hover:shadow-red-900/30 transition flex items-center gap-3 mx-auto font-bold">
                 <i data-lucide="file-text"></i> Email PDF Report
@@ -304,7 +314,9 @@ function renderOverview(container) {
         </div>
     `;
 
-    // Render Charts
+    // --- Render All Overview Charts ---
+    const chartColors = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+    
     if (document.getElementById('overviewChart')) {
         const chart = new Chart(document.getElementById('overviewChart'), {
             type: 'line',
@@ -324,14 +336,7 @@ function renderOverview(container) {
     if (document.getElementById('subjectPieChart')) {
         const pieChart = new Chart(document.getElementById('subjectPieChart'), {
             type: 'pie',
-            data: {
-                labels: subjects,
-                datasets: [{
-                    data: subjectExamCounts,
-                    backgroundColor: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'],
-                    borderWidth: 0
-                }]
-            },
+            data: { labels: subjects, datasets: [{ data: subjectExamCounts, backgroundColor: chartColors, borderWidth: 0 }] },
             options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
         });
         activeCharts.push(pieChart);
@@ -340,14 +345,7 @@ function renderOverview(container) {
     if (document.getElementById('errorPieChart')) {
         const errorPieChart = new Chart(document.getElementById('errorPieChart'), {
             type: 'pie',
-            data: {
-                labels: subjects,
-                datasets: [{
-                    data: subjectErrorCounts,
-                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'],
-                    borderWidth: 0
-                }]
-            },
+            data: { labels: subjects, datasets: [{ data: subjectErrorCounts, backgroundColor: chartColors.slice(1), borderWidth: 0 }] },
             options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }, maintainAspectRatio: false }
         });
         activeCharts.push(errorPieChart);
@@ -366,12 +364,14 @@ function renderOverview(container) {
     }
 }
 
+// --- THIS IS THE FUNCTION THAT BUILDS THE SUBJECT PAGE ---
 function renderSubjectView(container) {
     const subExams = exams.filter(e => e.subject === selectedSubject);
     const subAvg = subExams.length 
         ? (subExams.reduce((s, e) => s + (parseFloat(e.marksScored) / parseFloat(e.totalMarks)), 0) / subExams.length * 100).toFixed(1)
         : '0.0';
 
+    // --- TOPIC AGGREGATION & TABLE GENERATION ---
     let topicStats = {};
     subExams.forEach(e => {
         if(e.topics && Array.isArray(e.topics)) {
@@ -388,10 +388,17 @@ function renderSubjectView(container) {
     const topicLabels = Object.keys(topicStats);
     const topicErrorCounts = topicLabels.map(t => topicStats[t].incorrect);
     const topicErrorRates = topicLabels.map(t => {
-        const total = topicStats[t].total;
-        const rate = total > 0 ? ((topicStats[t].incorrect / total) * 100) : 0;
-        return isNaN(rate) ? 0 : rate.toFixed(1);
+        const stats = topicStats[t];
+        const rate = (stats.total > 0) ? ((stats.incorrect / stats.total) * 100) : 0;
+        return rate.toFixed(1);
     });
+    
+    // Sort topics by error rate for the bar chart
+    const sortedTopics = topicLabels.map((label, i) => ({
+        label,
+        rate: parseFloat(topicErrorRates[i])
+    })).sort((a, b) => b.rate - a.rate);
+
 
     const topicRows = topicLabels.map(t => {
         const total = topicStats[t].total;
@@ -475,6 +482,7 @@ function renderSubjectView(container) {
 
             </div>
 
+            <!-- CHARTS from screenshots -->
             <div class="flex flex-col gap-6">
                 <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                     <h3 class="text-lg font-bold mb-4">Progress</h3>
@@ -486,7 +494,7 @@ function renderSubjectView(container) {
                 <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                     <h3 class="text-lg font-bold mb-4">Error Distribution</h3>
                     <div class="chart-container" style="height: 200px;">
-                        <canvas id="subTopicPie"></canvas>
+                        <canvas id="subTopicDoughnut"></canvas>
                     </div>
                 </div>
 
@@ -500,7 +508,9 @@ function renderSubjectView(container) {
         </div>
     `;
 
-    // Render Charts
+    // --- Render All Subject Charts ---
+    const chartColors = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+    
     if (document.getElementById('subChart')) {
         activeCharts.push(new Chart(document.getElementById('subChart'), {
             type: 'line',
@@ -512,16 +522,16 @@ function renderSubjectView(container) {
                     borderColor: '#a855f7', tension: 0.4, fill: true, backgroundColor: 'rgba(168, 85, 247, 0.1)'
                 }]
             },
-            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } }
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         }));
     }
 
-    if (document.getElementById('subTopicPie') && topicLabels.length) {
-        activeCharts.push(new Chart(document.getElementById('subTopicPie'), {
+    if (document.getElementById('subTopicDoughnut') && topicLabels.length) {
+        activeCharts.push(new Chart(document.getElementById('subTopicDoughnut'), {
             type: 'doughnut',
             data: {
                 labels: topicLabels,
-                datasets: [{ data: topicErrorCounts, backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'], borderWidth: 0 }]
+                datasets: [{ data: topicErrorCounts, backgroundColor: chartColors, borderWidth: 0 }]
             },
             options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
         }));
@@ -531,10 +541,10 @@ function renderSubjectView(container) {
         activeCharts.push(new Chart(document.getElementById('subTopicBar'), {
             type: 'bar',
             data: {
-                labels: topicLabels,
-                datasets: [{ label: 'Error %', data: topicErrorRates, backgroundColor: '#ef4444', borderRadius: 4 }]
+                labels: sortedTopics.map(t => t.label),
+                datasets: [{ label: 'Error %', data: sortedTopics.map(t => t.rate), backgroundColor: '#ef4444', borderRadius: 4 }]
             },
-            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } }
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#334155' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         }));
     }
 }
@@ -626,7 +636,7 @@ function renderForm() {
                     <button type="button" onclick="addTopic()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
                 </div>
                 
-                <div class="max-h-32 overflow-y-auto custom-scrollbar">
+                <div id="topic-list" class="max-h-32 overflow-y-auto custom-scrollbar">
                     ${topicsListHtml}
                 </div>
             </div>
@@ -649,7 +659,7 @@ async function saveExamEntry() {
     
     const finalEntry = {
         ...currentExam,
-        id: Date.now(),
+        id: Date.now(), // Use timestamp as a unique ID
         totalMarks: parseFloat(currentExam.totalMarks),
         marksScored: parseFloat(currentExam.marksScored)
     };
@@ -657,20 +667,22 @@ async function saveExamEntry() {
     exams.push(finalEntry);
     await saveData(exams);
     
+    // Reset
     currentExam = { name: '', date: new Date().toISOString().split('T')[0], subject: '', totalMarks: '', marksScored: '', topics: [] };
     showForm = false;
     renderApp();
 }
 
 function deleteExam(id) {
+    // We use a timestamp ID, so it's a number
+    const numId = parseInt(id);
     if (confirm("Are you sure you want to delete this exam?")) {
-        const newExams = exams.filter(e => e.id !== id);
+        const newExams = exams.filter(e => e.id !== numId);
         saveData(newExams);
     }
 }
 
-// **CRITICAL FIX**: Expose functions to the global scope
-// This makes sure the 'onclick' attributes in the HTML can find these functions
+// Explicitly Expose Functions to Global Scope (Window)
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;
 window.uploadProfilePic = uploadProfilePic;

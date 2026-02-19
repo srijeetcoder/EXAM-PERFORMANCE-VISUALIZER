@@ -117,7 +117,7 @@ Python 3.8 or higher installed.
 
 #### 1. Clone the Repository
 ```markdown
-git clone [https://github.com/your-username/InsightScore.git](https://github.com/your-username/InsightScore.git)
+git clone https://github.com/srijeetcoder/EXAM-PERFORMANCE-VISUALIZER
 cd InsightScore
 ```
 
